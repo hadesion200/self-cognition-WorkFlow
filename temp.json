@@ -1,0 +1,47 @@
+curl -X POST "http://jb-aionlineinferenceservice-164010789547563648-8000-nhss-job.z2120.nhss.zhejianglab.com:31080/v1/chat/completions" \
+    -H "Content-Type: application/json" -H "Authorization: Bearer WXP11qnlGA5ggs_lFA07ms1Ag0AhyfxD5DNLGlF0vvv0" -d \
+    "{\"model\": \"deepseek-v4.1-flash-1017\", \"messages\": [{\"role\": \"user\", \"content\": \"你好，测试一下连接\"}]}"
+
+curl https: //api.moonshot.cn/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-xI0C3i8lUjwUmhLirBBIOpeP6dmpjdW0iDavWW5rpuCMdgVr" \
+  -d '{
+    "model": "kimi-k2.6",
+    "messages": [
+        {
+            "role": "user",
+            "content": "你好，测试一下连接"
+        }
+    ]
+}'
+
+curl https: //api.moonshot.cn/v1/models -H "Authorization: Bearer sk-xI0C3i8lUjwUmhLirBBIOpeP6dmpjdW0iDavWW5rpuCMdgVr"
+{
+    "id": "chatcmpl-6ae312b247a685968fc89e81",
+    "object": "chat.completion",
+    "created": 1793266354,
+    "model": "kimi-k2.6",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "你好！连接正常，我可以正常接收和回复消息。很高兴为你服务，有什么我可以帮你的吗？",
+                "reasoning_content": "用户说\"你好，测试一下连接\"，这是一个简单的问候和连接测试。我需要用中文回复，确认连接正常，并友好地回应。\n\n这很简单，不需要复杂的分析。用户只是想确认我是否在线以及能否正常回应。我应该：\n1. 确认连接正常\n2. 友好地问候\n3. 表示愿意帮助\n\n不需要使用工具，也不需要特别的格式。"
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 12,
+        "completion_tokens": 104,
+        "total_tokens": 116,
+        "cached_tokens": 12,
+        "completion_tokens_details": {
+            "reasoning_tokens": 80
+        },
+        "prompt_tokens_details": {
+            "cached_tokens": 12
+        }
+    }
+}

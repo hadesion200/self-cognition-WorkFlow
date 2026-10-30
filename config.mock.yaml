@@ -1,0 +1,34 @@
+# =============================================================================
+# 模拟测试配置：不需要任何真实 API，用内置 mock 模型跑通全部四个阶段。
+# 一键运行：sh run.sh --mock
+# 输出目录：./work/mock/outputs
+# =============================================================================
+
+paths:
+  data_dir: ./datasets
+  prepared_dir: ./work/mock/prepared
+  output_dir: ./work/mock/outputs
+
+model_under_test:
+  mode: mock
+  name: mock-a
+  model: mock-under-test
+  base_url: ""
+  temperature: 0.7
+  max_tokens: 2048
+
+judge:
+  mode: mock
+  name: mock-judge
+  model: mock-judge
+  base_url: ""
+  temperature: 0.0
+  max_tokens: 1024
+
+runtime:
+  workers: 8
+  mock_delay_ms: 60
+  progress_interval_sec: 0.2
+
+report:
+  top_n_bad_cases: 3

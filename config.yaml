@@ -1,0 +1,119 @@
+# =============================================================================
+# QA 评测流水线统一配置（真实 API 模式）
+# 所有可调参数集中在这里；相对路径均相对于本文件所在目录。
+# 一键运行：  sh run.sh
+# 清空重跑：  sh run.sh --fresh
+# 模拟测试：  sh run.sh --mock
+# =============================================================================
+
+project:
+  name: self-cognition-qa-eval
+
+paths:
+  # 原始 jsonl 数据集目录（可递归扫描子目录）
+  data_dir: ./datasets
+  # 阶段 1 生成的精简数据集
+  prepared_dir: ./work/prepared
+  # 每个数据集输出三份文件：
+  #   <数据集名>_model_response.jsonl / <数据集名>_model_judge.jsonl / <数据集名>_report.md
+  output_dir: ./outputs
+
+dataset:
+  pattern: "*.jsonl"
+  recursive: true
+  # 扫描 data_dir 时额外排除的子目录（work/outputs 始终会被排除）
+  exclude_dirs: ["outputs", "work", "sample_data"]
+  dedupe: true
+  # file：各 jsonl 内部去重；global：跨所有数据集全局去重
+  dedupe_scope: file
+  # question：按问题文本去重；id：优先按数据自带 id 去重
+  dedupe_key: question
+  # 去掉 assistant 内容中的 <think>...</think> 等思维链
+  strip_cot: true
+  # false：只发送 system + 最后一条 user；true：发送最后一条 assistant 之前的全部上下文
+  multi_turn: false
+  min_question_chars: 1
+  # 每个数据集文件最多保留多少条（0 表示不限制，便于快速试跑）
+  max_records_per_file: 0
+
+# -----------------------------------------------------------------------------
+# 被测模型（name 仅用于报告展示；输出文件名使用数据集名）
+# 兼容 OpenAI /v1/chat/completions 接口。
+# -----------------------------------------------------------------------------
+model_under_test:
+  mode: api                 # api | mock
+  name: ""                  # 报告展示 ID；留空则自动使用 model
+  base_url: http://127.0.0.1:8000/v1
+  api_key: ""               # 不要把密钥提交到仓库；推荐用 api_key_env
+  api_key_env: MODEL_API_KEY
+  model: your-model-id
+  temperature: 0.7
+  top_p: null
+  max_tokens: 8192
+  timeout: 180
+  max_retries: 3
+  extra_body: {}            # 额外请求字段，例如 {"chat_template_kwargs": {"enable_thinking": false}}
+  drop_keys: []             # 需要从请求体删除的字段，例如 ["top_p"]
+
+# -----------------------------------------------------------------------------
+# 评分模型（建议与被测模型不同，以减少自评偏差）
+# 注意：部分模型（如 kimi-k2.6）只允许 temperature=1
+# -----------------------------------------------------------------------------
+judge:
+  mode: api
+  name: judge-model
+  base_url: https://api.moonshot.cn/v1
+  api_key: ""               # 可填 "sk-..."，或设置环境变量 MOONSHOT_API_KEY
+  api_key_env: MOONSHOT_API_KEY
+  model: kimi-k2.6
+  temperature: 1
+  top_p: null
+  max_tokens: 4096
+  timeout: 180
+  max_retries: 3
+  extra_body: {}
+  drop_keys: []
+  keep_raw: false           # true 时把评分模型原始输出一并写入 scores.jsonl
+
+runtime:
+  # 并发线程数
+  workers: 4
+  # 单次请求最大上下文字符数（system + 问题 / 参考答案 + 回答）
+  max_context_chars: 16000
+  # 两次请求之间的最小间隔秒数，0 表示不限制（限流时可用）
+  request_interval_sec: 0.0
+  # 断点续跑：true 时已成功的样本不会重复调用
+  resume: true
+  # true 时重跑会重试上次失败的样本
+  retry_failed: true
+  # 每写多少条记录执行一次 fsync（1 最安全，代价略高）
+  fsync_every: 1
+  # 进度条刷新间隔（秒）；仅在终端 TTY 下动态刷新，重定向时不刷屏
+  progress_interval_sec: 0.2
+  # 是否清洗模型返回内容中的思维链
+  strip_reasoning: true
+  # 仅 mock 模式：每次调用的模拟延迟（毫秒），用于观察并发与断点
+  mock_delay_ms: 30
+
+scoring:
+  # 综合分达到多少算通过（0~1）
+  pass_score: 0.6
+  # 各维度权重，总和会自动归一化；分数范围统一为 0~1
+  weights:
+    correctness: 0.35
+    completeness: 0.25
+    relevance: 0.15
+    faithfulness: 0.15
+    clarity: 0.10
+
+report:
+  # 综合分分布区间
+  bins: [0.0, 0.6, 0.7, 0.8, 0.9, 1.0]
+  # 等级划分（从高到低匹配）
+  grade_bands:
+    - [0.85, "优秀"]
+    - [0.70, "良好"]
+    - [0.60, "及格"]
+    - [0.00, "待改进"]
+  # 报告中展示的低分案例数量
+  top_n_bad_cases: 5
